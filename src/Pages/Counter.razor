@@ -1,0 +1,108 @@
+﻿@page "/counter/{TagId}"
+@attribute [Authorize]
+@implements IDisposable
+@using booka.counter.Data
+
+
+@if (TagPageModel == null)
+{
+    <p>lade...</p>
+}
+else
+{
+<h1>@TagPageModel.Tag.Title</h1>
+<p>@TagPageModel.Tag.Description</p>
+    <div class="container">
+        <div class="row">
+            @if (!TagPageModel.Counts.Any(c => c.UserId == User.Id))
+            {
+                <button type="button" @onclick="() => IncrementCount(1)" class="btn btn-sm btn-outline-secondary">Klick hier für deinen ersten Count!</button>
+            }
+
+            @foreach (var user in TagPageModel.Counts.GroupBy(c => c.UserId).OrderBy(g => g.Key != User.Id))
+            {
+                <div class="col-md-4">
+                    <div class="card mb-4 shadow-sm">
+                        <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
+                            <title>Placeholder</title>
+                            <rect width="100%" height="100%" fill="#55595c"></rect>
+                            <text x="50%" y="50%" fill="#eceeef" dy=".3em">@user.Sum(c => c.Value)</text>
+                        </svg>
+                        <div class="card-body">
+                            <p class="card-text">
+                                @Users.First(u => u.Id == user.Key)
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="btn-group">
+                                    @if (user.Any(c => c.UserId == User.Id))
+                                    {
+                                        <button type="button" @onclick="() => IncrementCount(1)" class="btn btn-sm btn-outline-secondary">+1</button>
+                                        <button type="button" @onclick="() => IncrementCount(5)" class="btn btn-sm btn-outline-secondary">+5</button>
+                                    }
+                                </div>
+                                <small class="text-muted">@user.Max(c => c.TimeStamp).ToString("dd.MM.yyyy HH:mm")</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+@code {
+
+    [Inject]
+    public CountService CountService { get; set; }
+
+    [Parameter]
+    public string TagId { get; set; }
+
+    private List<ApplicationUser> Users { get; set; }
+    private ApplicationUser User { get; set; }
+
+
+    private TagPageModel TagPageModel { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Initialize();
+        await base.OnInitializedAsync();
+    }
+
+    protected override async void OnParametersSet()
+    {
+        await Initialize();
+        base.OnParametersSet();
+    }
+
+    private async Task Initialize()
+    {
+        if (TagPageModel != null)
+        {
+            TagPageModel.PropertyChanged -= (a, b) => StateHasChanged();
+            TagPageModel.Counts.CollectionChanged -= (a, b) => StateHasChanged();
+        }
+
+        var tagId = Guid.Parse(TagId);
+        Users = await CountService.GetAllUsers();
+        User = await CountService.GetUser();
+
+        TagPageModel = await CountService.GetPageModel(tagId);
+        TagPageModel.PropertyChanged += (a, b) => InvokeAsync(StateHasChanged);
+        TagPageModel.Counts.CollectionChanged += (a, b) => InvokeAsync(StateHasChanged);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task IncrementCount(int inc)
+    {
+        await CountService.AddCount(TagPageModel.Tag, inc);
+    }
+
+    void IDisposable.Dispose()
+    {
+        if (TagPageModel == null)
+            return;
+        TagPageModel.PropertyChanged -= (a, b) => StateHasChanged();
+        TagPageModel.Counts.CollectionChanged -= (a, b) => StateHasChanged();
+    }
+}

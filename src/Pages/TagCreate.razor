@@ -1,0 +1,67 @@
+﻿@page "/tag"
+@attribute [Authorize]
+@using booka.counter.Data
+@using System.ComponentModel.DataAnnotations
+
+<h1>TagCreate</h1>
+
+<h4>Tag</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm Model="Tcm" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <label>
+                Titel:
+                <InputText id="title" @bind-Value="Tcm.Titel" />
+            </label>
+            <label>
+                Description
+                <InputTextArea id="desc" @bind-Value="Tcm.Description" />
+            </label>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a asp-page="Index">Back to List</a>
+</div>
+
+@code {
+    [Inject]
+    private CountService CountService { get; set; }
+
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    TagCreateModel Tcm { get; set; } = new TagCreateModel();
+
+    private string Error { get; set; }
+
+
+    async void HandleValidSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(Tcm.Titel))
+        {
+            Error = "Titel darf nicht leer sein";
+            return;
+        }
+
+        var tag = await CountService.CreateTag(Tcm.Titel, Tcm.Description);
+
+        NavigationManager.NavigateTo("/counter/" + tag.Id);
+    }
+
+    class TagCreateModel
+    {
+        [Required]
+        [MinLength(3)]
+        [StringLength(16, ErrorMessage = "Title too long (16 character limit).")]
+        public string Titel { get; set; } = "Abc";
+        public string Description { get; set; } = "Description";
+    }
+}
