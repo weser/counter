@@ -12,17 +12,18 @@
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
+        "SQLAZURECONNSTR_DEFAULT_CONNECTION": "Server=(localdb)\\mssqllocaldb;Database=booka.counter;Trusted_Connection=True;MultipleActiveResultSets=true",
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "booka.counter": {
       "commandName": "Project",
-      "dotnetRunMessages": "true",
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:5001;http://localhost:5000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": "true",
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
     }
   }
 }
