@@ -2,11 +2,31 @@
 
 <div class="col-md-4">
     <div class="card mb-4 shadow-sm">
-        <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
-            <title>Placeholder</title>
-            <rect width="100%" height="100%" fill="#55595c"></rect>
-            <text x="50%" y="50%" fill="#eceeef" dy=".3em">@Counts.Sum(c => c.Value)</text>
-        </svg>
+
+
+
+        <TelerikChart width="100%">
+            <ChartSeriesItems>
+                <ChartSeries Type="ChartSeriesType.Line" Name="Product 1" Data="@series1Data">
+                </ChartSeries>
+                <ChartSeries Type="ChartSeriesType.Line" Name="Product 2" Data="@series2Data">
+                </ChartSeries>
+            </ChartSeriesItems>
+
+            <ChartCategoryAxes>
+                <ChartCategoryAxis Categories="@xAxisItems.ToArray()"></ChartCategoryAxis>
+            </ChartCategoryAxes>
+
+            <ChartLegend Position="ChartLegendPosition.Custom" OffsetX="24" OffsetY="10">
+            </ChartLegend>
+        </TelerikChart>
+
+
+        @*<svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
+                <title>Placeholder</title>
+                <rect width="100%" height="100%" fill="#55595c"></rect>
+                <text x="50%" y="50%" fill="#eceeef" dy=".3em">@Counts.Sum(c => c.Value)</text>
+            </svg>*@
         <div class="card-body">
             <p class="card-text">
                 @User.UserName
@@ -27,6 +47,11 @@
 
 @code {
 
+    public List<object> series1Data = new List<object>() { 10, 2, 5, 6 };
+    public List<object> series2Data = new List<object>() { 5, 8, 2, 7 };
+    public string[] xAxisItems = new string[] { "Q1", "Q2", "Q3", "Q4" };
+
+
     [Inject]
     public CountService CountService { get; set; }
 
@@ -34,14 +59,47 @@
     public Tag Tag { get; set; }
     [Parameter]
     public List<Count> Counts { get; set; }
+    private List<Count> _counts;
     [Parameter]
     public ApplicationUser User { get; set; }
 
     [Parameter]
     public bool ShowIncrementButtons { get; set; }
 
+
+    protected override async void OnParametersSet()
+    {
+        if (_counts?.Sum(c => c.Value) == Counts?.Sum(c => c.Value)) return;
+        _counts = Counts;
+
+        InitializeSeries(DateTime.Today.AddDays(-2), DateTime.Today.AddDays(1), TimeSpan.FromHours(1), "HH:mm", 2);
+
+        await InvokeAsync(StateHasChanged);
+        base.OnParametersSet();
+    }
+
     private async Task IncrementCount(int inc)
     {
         await CountService.AddCount(Tag, inc);
     }
+
+    void InitializeSeries(DateTime from, DateTime to, TimeSpan step, string xAxisFormat, int avgBoxSize)
+    {
+        var xValues = new List<string>();
+        var yValues = new List<int>();
+        var yValuesAvg = new List<double>();
+        for (var t = from; t <= to; t += step)
+        {
+            xValues.Add(t.ToString(xAxisFormat));
+            var sum = Counts.Where(c => c.TimeStamp >= t && c.TimeStamp < t.Add(step)).Sum(c => c.Value);
+            yValues.Add(sum);
+        }
+
+
+
+        series1Data = new List<object>(yValues.Select(y => (object)y));
+        //series2Data = new List<object>();
+        xAxisItems = xAxisItems.ToArray();
+    }
+
 }
