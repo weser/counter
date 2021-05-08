@@ -49,6 +49,8 @@ namespace booka.counter
             services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ApplicationUser>>();
             services.AddDatabaseDeveloperPageExceptionFilter();
             services.AddScoped<CountService>();
+
+            services.AddTelerikBlazor();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,0 +1,47 @@
+﻿@using booka.counter.Data
+
+<div class="col-md-4">
+    <div class="card mb-4 shadow-sm">
+        <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
+            <title>Placeholder</title>
+            <rect width="100%" height="100%" fill="#55595c"></rect>
+            <text x="50%" y="50%" fill="#eceeef" dy=".3em">@Counts.Sum(c => c.Value)</text>
+        </svg>
+        <div class="card-body">
+            <p class="card-text">
+                @User.UserName
+            </p>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                    @if (ShowIncrementButtons)
+                    {
+                        <button type="button" @onclick="() => IncrementCount(1)" class="btn btn-sm btn-outline-secondary">+1</button>
+                        <button type="button" @onclick="() => IncrementCount(5)" class="btn btn-sm btn-outline-secondary">+5</button>
+                    }
+                </div>
+                <small class="text-muted">@Counts.Max(c => c.TimeStamp).ToString("dd.MM.yyyy HH:mm")</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Inject]
+    public CountService CountService { get; set; }
+
+    [Parameter]
+    public Tag Tag { get; set; }
+    [Parameter]
+    public List<Count> Counts { get; set; }
+    [Parameter]
+    public ApplicationUser User { get; set; }
+
+    [Parameter]
+    public bool ShowIncrementButtons { get; set; }
+
+    private async Task IncrementCount(int inc)
+    {
+        await CountService.AddCount(Tag, inc);
+    }
+}

@@ -67,7 +67,7 @@ namespace booka.counter.Data
         {
             await EnsureCache();
             var cp = (await asProvider.GetAuthenticationStateAsync()).User;
-            var user = await userManager.GetUserAsync(cp); 
+            var user = await userManager.GetUserAsync(cp);
 
             var count = new Count()
             {
