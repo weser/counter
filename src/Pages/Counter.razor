@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @implements IDisposable
 @using booka.counter.Data
+@using booka.counter.Models
 
 
 @if (TagPageModel == null)
@@ -10,8 +11,9 @@
 }
 else
 {
-<h1>@TagPageModel.Tag.Title</h1>
-<p>@TagPageModel.Tag.Description</p>
+    <h1>@TagPageModel.Tag.Title</h1>
+    <p>@TagPageModel.Tag.Description</p>
+    <TelerikComboBox Data="@ChartSpanValues" @bind-Value="SelectedChartSpan" />
     <div class="container">
         <div class="row">
             @if (!TagPageModel.Counts.Any(c => c.UserId == User.Id))
@@ -21,10 +23,11 @@ else
 
             @foreach (var user in TagPageModel.Counts.GroupBy(c => c.UserId).OrderBy(g => g.Key != User.Id))
             {
-                <booka.counter.Components.UserCard User="@Users.First(u => u.Id == user.Key)" 
-                                                   Tag="@TagPageModel.Tag" 
+                <booka.counter.Components.UserCard User="@Users.First(u => u.Id == user.Key)"
+                                                   Tag="@TagPageModel.Tag"
                                                    Counts="@user.ToList()"
-                                                   ShowIncrementButtons="@(User.Id == user.Key)"/>
+                                                   ShowIncrementButtons="@(User.Id == user.Key)"
+                                                   ChartConfig="@ChartConfig" />
             }
         </div>
     </div>
@@ -37,9 +40,34 @@ else
     [Parameter]
     public string TagId { get; set; }
 
+    private ChartSpan _selectedChartSpan;
+    public ChartSpan SelectedChartSpan
+    {
+        get
+        {
+            return _selectedChartSpan;
+        }
+        set
+        {
+            if (value == _selectedChartSpan) return;
+            _selectedChartSpan = value;
+            Initialize();
+        }
+    }
+
     private List<ApplicationUser> Users { get; set; }
     private ApplicationUser User { get; set; }
 
+    private ChartConfig ChartConfig { get; set; }
+
+    private ChartSpan[] ChartSpanValues = new ChartSpan[]
+    {
+        ChartSpan.OneDay,
+        ChartSpan.TwoDays,
+        ChartSpan.Week,
+        ChartSpan.Month,
+        ChartSpan.All,
+                                };
 
     private TagPageModel TagPageModel { get; set; }
 
@@ -70,6 +98,11 @@ else
         TagPageModel = await CountService.GetPageModel(tagId);
         TagPageModel.PropertyChanged += (a, b) => InvokeAsync(StateHasChanged);
         TagPageModel.Counts.CollectionChanged += (a, b) => InvokeAsync(StateHasChanged);
+
+        var from = TagPageModel.Counts.Min(c => c.TimeStamp.Date);
+
+        ChartConfig = new ChartConfig(SelectedChartSpan, from);
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -85,4 +118,6 @@ else
         TagPageModel.PropertyChanged -= (a, b) => StateHasChanged();
         TagPageModel.Counts.CollectionChanged -= (a, b) => StateHasChanged();
     }
+
+
 }

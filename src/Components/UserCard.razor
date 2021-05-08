@@ -1,4 +1,5 @@
 ﻿@using booka.counter.Data
+@using booka.counter.Models
 
 <div class="col-md-4">
     <div class="card mb-4 shadow-sm">
@@ -14,7 +15,7 @@
             </ChartSeriesItems>
 
             <ChartCategoryAxes>
-                <ChartCategoryAxis Categories="@xAxisItems"></ChartCategoryAxis>
+                <ChartCategoryAxis Categories="@xAxisItems" BaseUnitStep="4"></ChartCategoryAxis>
             </ChartCategoryAxes>
 
             <ChartLegend Position="ChartLegendPosition.Custom" OffsetX="24" OffsetY="10">
@@ -29,7 +30,7 @@
             </svg>*@
         <div class="card-body">
             <p class="card-text">
-                @User.UserName
+                @User.UserName (<span>@Counts.Sum(c => c.Value)</span>)
             </p>
             <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">
@@ -66,13 +67,19 @@
     [Parameter]
     public bool ShowIncrementButtons { get; set; }
 
+    [Parameter]
+    public ChartConfig ChartConfig { get; set; }
+    private ChartConfig _chartConfig;
+
 
     protected override async void OnParametersSet()
     {
-        if (_counts?.Sum(c => c.Value) == Counts?.Sum(c => c.Value)) return;
+        if (_counts?.Sum(c => c.Value) == Counts?.Sum(c => c.Value) && ChartConfig == _chartConfig) return;
         _counts = Counts;
+        _chartConfig = ChartConfig;
 
-        InitializeSeries(DateTime.Today.AddDays(-3), DateTime.Now, TimeSpan.FromHours(4), "HH", 7);
+        if (ChartConfig != null)
+            InitializeSeries(ChartConfig);
 
         await InvokeAsync(StateHasChanged);
         base.OnParametersSet();
@@ -83,21 +90,21 @@
         await CountService.AddCount(Tag, inc);
     }
 
-    void InitializeSeries(DateTime from, DateTime to, TimeSpan step, string xAxisFormat, int avgBoxSize)
+    void InitializeSeries(ChartConfig config)
     {
         var xValues = new List<string>();
         var yValues = new List<int>();
         var yValuesAvg = new List<double>();
-        for (var t = from; t <= to; t += step)
+        for (var t = config.From; t <= config.To; t += config.Step)
         {
-            xValues.Add(t.ToString(xAxisFormat));
-            var sum = Counts.Where(c => c.TimeStamp >= t && c.TimeStamp < t.Add(step)).Sum(c => c.Value);
+            xValues.Add(t.ToString(config.XAxisFormat));
+            var sum = Counts.Where(c => c.TimeStamp >= t && c.TimeStamp < t.Add(config.Step)).Sum(c => c.Value);
             yValues.Add(sum);
         }
 
         for (var i = 0; i < xValues.Count; i++)
         {
-            var boxLeft = Math.Max(0, i - avgBoxSize + 1);
+            var boxLeft = Math.Max(0, i - config.AvgBoxSize + 1);
             var take = i - boxLeft + 1;
             var sum = yValues.Skip(boxLeft).Take(take).Sum();
             yValuesAvg.Add(sum);
@@ -113,5 +120,7 @@
         series2Data = new List<object>(yValuesAvg.Select(y => (object)y));
         xAxisItems = xValues.ToArray();
     }
+
+
 
 }
