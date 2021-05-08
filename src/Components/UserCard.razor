@@ -7,14 +7,14 @@
 
         <TelerikChart width="100%">
             <ChartSeriesItems>
-                <ChartSeries Type="ChartSeriesType.Line" Name="Product 1" Data="@series1Data">
+                <ChartSeries Type="ChartSeriesType.Line" Name="Total" Data="@series1Data" Style="ChartSeriesStyle.Smooth">
                 </ChartSeries>
-                <ChartSeries Type="ChartSeriesType.Line" Name="Product 2" Data="@series2Data">
+                <ChartSeries Type="ChartSeriesType.Line" Name="mAvg(7)" Data="@series2Data" Style="ChartSeriesStyle.Smooth">
                 </ChartSeries>
             </ChartSeriesItems>
 
             <ChartCategoryAxes>
-                <ChartCategoryAxis Categories="@xAxisItems.ToArray()"></ChartCategoryAxis>
+                <ChartCategoryAxis Categories="@xAxisItems"></ChartCategoryAxis>
             </ChartCategoryAxes>
 
             <ChartLegend Position="ChartLegendPosition.Custom" OffsetX="24" OffsetY="10">
@@ -47,9 +47,9 @@
 
 @code {
 
-    public List<object> series1Data = new List<object>() { 10, 2, 5, 6 };
-    public List<object> series2Data = new List<object>() { 5, 8, 2, 7 };
-    public string[] xAxisItems = new string[] { "Q1", "Q2", "Q3", "Q4" };
+    public List<object> series1Data;
+    public List<object> series2Data;
+    public string[] xAxisItems;
 
 
     [Inject]
@@ -72,7 +72,7 @@
         if (_counts?.Sum(c => c.Value) == Counts?.Sum(c => c.Value)) return;
         _counts = Counts;
 
-        InitializeSeries(DateTime.Today.AddDays(-2), DateTime.Today.AddDays(1), TimeSpan.FromHours(1), "HH:mm", 2);
+        InitializeSeries(DateTime.Today.AddDays(-3), DateTime.Now, TimeSpan.FromHours(4), "HH", 7);
 
         await InvokeAsync(StateHasChanged);
         base.OnParametersSet();
@@ -95,11 +95,23 @@
             yValues.Add(sum);
         }
 
+        for (var i = 0; i < xValues.Count; i++)
+        {
+            var boxLeft = Math.Max(0, i - avgBoxSize + 1);
+            var take = i - boxLeft + 1;
+            var sum = yValues.Skip(boxLeft).Take(take).Sum();
+            yValuesAvg.Add(sum);
+        }
+
+        for (var i = 1; i < xValues.Count; i++)
+        {
+            yValues[i] = yValues[i] + yValues[i - 1];
+        }
 
 
         series1Data = new List<object>(yValues.Select(y => (object)y));
-        //series2Data = new List<object>();
-        xAxisItems = xAxisItems.ToArray();
+        series2Data = new List<object>(yValuesAvg.Select(y => (object)y));
+        xAxisItems = xValues.ToArray();
     }
 
 }
