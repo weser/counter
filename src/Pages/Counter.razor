@@ -13,8 +13,34 @@ else
 {
     <h1>@TagPageModel.Tag.Title</h1>
     <p>@TagPageModel.Tag.Description</p>
-    <TelerikComboBox Data="@ChartSpanValues" @bind-Value="SelectedChartSpan" />
     <div class="container">
+        <div class="row">
+            <div class="col-6">
+                <TelerikComboBox Data="@ChartSpanValues" @bind-Value="SelectedChartSpan" OnChange="@((v) => Initialize())" />
+            </div>
+            <div class="col-6">
+                <TelerikComboBox Data="@ChartModeValues" @bind-Value="SelectedChartMode" OnChange="@((v) => Initialize())" />
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <TelerikChart>
+                    <ChartSeriesItems>
+                        @for (var i = 0; i < ChartSeriesValues.Count; i++)
+                        {
+                            <ChartSeries Type="ChartSeriesType.Line" Name="@ChartSeriesLabels[i]" Data="@ChartSeriesValues[i]" />
+                        }
+                    </ChartSeriesItems>
+
+                    <ChartCategoryAxes>
+                        <ChartCategoryAxis Categories="@xAxisItems" />
+                    </ChartCategoryAxes>
+                    <ChartLegend Position="ChartLegendPosition.Right">
+                    </ChartLegend>
+                </TelerikChart>
+            </div>
+        </div>
         <div class="row">
             @if (!TagPageModel.Counts.Any(c => c.UserId == User.Id))
             {
@@ -26,13 +52,16 @@ else
                 <booka.counter.Components.UserCard User="@Users.First(u => u.Id == user.Key)"
                                                    Tag="@TagPageModel.Tag"
                                                    Counts="@user.ToList()"
-                                                   ShowIncrementButtons="@(User.Id == user.Key)"
-                                                   ChartConfig="@ChartConfig" />
+                                                   ShowIncrementButtons="@(User.Id == user.Key)" />
             }
         </div>
     </div>
 }
 @code {
+    public List<List<object>> ChartSeriesValues;
+    public List<string> ChartSeriesLabels;
+    public string[] xAxisItems = new string[] { "Q1", "Q2", "Q3", "Q4" };
+
 
     [Inject]
     public CountService CountService { get; set; }
@@ -40,25 +69,11 @@ else
     [Parameter]
     public string TagId { get; set; }
 
-    private ChartSpan _selectedChartSpan;
-    public ChartSpan SelectedChartSpan
-    {
-        get
-        {
-            return _selectedChartSpan;
-        }
-        set
-        {
-            if (value == _selectedChartSpan) return;
-            _selectedChartSpan = value;
-            Initialize();
-        }
-    }
+    public ChartSpan SelectedChartSpan { get; set; } = ChartSpan.All;
+    public ChartMode SelectedChartMode { get; set; } = ChartMode.SevenDayAverage;
 
     private List<ApplicationUser> Users { get; set; }
     private ApplicationUser User { get; set; }
-
-    private ChartConfig ChartConfig { get; set; }
 
     private ChartSpan[] ChartSpanValues = new ChartSpan[]
     {
@@ -67,7 +82,13 @@ else
         ChartSpan.Week,
         ChartSpan.Month,
         ChartSpan.All,
-                                };
+                    };
+    private ChartMode[] ChartModeValues = new ChartMode[]
+    {
+        ChartMode.Total,
+        ChartMode.SevenDayAverage,
+        ChartMode.Added
+                };
 
     private TagPageModel TagPageModel { get; set; }
 
@@ -96,19 +117,72 @@ else
         User = await CountService.GetUser();
 
         TagPageModel = await CountService.GetPageModel(tagId);
-        TagPageModel.PropertyChanged += (a, b) => InvokeAsync(StateHasChanged);
-        TagPageModel.Counts.CollectionChanged += (a, b) => InvokeAsync(StateHasChanged);
+        TagPageModel.PropertyChanged += (a, b) => CalcAllCharts();
+        TagPageModel.Counts.CollectionChanged += (a, b) => CalcAllCharts();
 
-        var from = TagPageModel.Counts.Min(c => c.TimeStamp.Date);
-
-        ChartConfig = new ChartConfig(SelectedChartSpan, from);
-
-        await InvokeAsync(StateHasChanged);
+        CalcAllCharts();
     }
 
     private async Task IncrementCount(int inc)
     {
         await CountService.AddCount(TagPageModel.Tag, inc);
+    }
+
+    private async void CalcAllCharts()
+    {
+        var config = new ChartConfig(SelectedChartSpan, TagPageModel.Counts.Min(c => c.TimeStamp.Date));
+        var xValues = new List<string>();
+        for (var t = config.From; t <= config.To; t += config.Step)
+            xValues.Add(t.ToString(config.XAxisFormat));
+        xAxisItems = xValues.ToArray();
+
+        ChartSeriesValues = new List<List<object>>();
+        ChartSeriesLabels = new List<string>();
+        foreach (var u in TagPageModel.Counts.GroupBy(c => c.UserId).OrderBy(u => u.Key != User.Id))
+        {
+            ChartSeriesLabels.Add(Users.First(us => us.Id == u.Key).UserName);
+            ChartSeriesValues.Add(CalcChart(u.ToList(), SelectedChartMode, config));
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private List<object> CalcChart(List<Count> counts, ChartMode mode, ChartConfig config)
+    {
+        var xValues = new List<string>();
+        var yValues = new List<int>();
+        var yValuesFinal = new List<double>();
+
+        for (var t = config.From; t <= config.To; t += config.Step)
+        {
+            xValues.Add(t.ToString(config.XAxisFormat));
+            var sum = counts.Where(c => c.TimeStamp >= t && c.TimeStamp < t.Add(config.Step)).Sum(c => c.Value);
+            yValues.Add(sum);
+        }
+
+        for (var i = 0; i < xValues.Count; i++)
+        {
+            switch (mode)
+            {
+                case ChartMode.Added:
+                    yValuesFinal.Add(yValues[i]);
+                    break;
+                case ChartMode.Total:
+                    if (i == 0)
+                        yValuesFinal.Add(yValues[i]);
+                    else
+                        yValuesFinal.Add(yValues[i] + yValuesFinal[i - 1]);
+                    break;
+                case ChartMode.SevenDayAverage:
+                    var boxLeft = Math.Max(0, i - config.AvgBoxSize + 1);
+                    var take = i - boxLeft + 1;
+                    var sum = (double)yValues.Skip(boxLeft).Take(take).Sum();
+                    yValuesFinal.Add(sum / config.AvgBoxSize);
+                    break;
+            }
+        }
+
+        return new List<object>(yValuesFinal.Select(y => (object)y));
     }
 
     void IDisposable.Dispose()

@@ -6,7 +6,7 @@
 
 
 
-        <TelerikChart width="100%">
+        @*<TelerikChart width="100%">
             <ChartSeriesItems>
                 <ChartSeries Type="ChartSeriesType.Line" Name="Total" Data="@series1Data" Style="ChartSeriesStyle.Smooth">
                 </ChartSeries>
@@ -15,19 +15,19 @@
             </ChartSeriesItems>
 
             <ChartCategoryAxes>
-                <ChartCategoryAxis Categories="@xAxisItems" BaseUnitStep="4"></ChartCategoryAxis>
+                <ChartCategoryAxis Categories="@xAxisItems" BaseUnitStep="8" ></ChartCategoryAxis>
             </ChartCategoryAxes>
 
             <ChartLegend Position="ChartLegendPosition.Custom" OffsetX="24" OffsetY="10">
             </ChartLegend>
-        </TelerikChart>
+        </TelerikChart>*@
 
 
-        @*<svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
+        <svg class="bd-placeholder-img card-img-top" width="100%" height="55" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
                 <title>Placeholder</title>
                 <rect width="100%" height="100%" fill="#55595c"></rect>
                 <text x="50%" y="50%" fill="#eceeef" dy=".3em">@Counts.Sum(c => c.Value)</text>
-            </svg>*@
+            </svg>
         <div class="card-body">
             <p class="card-text">
                 @User.UserName (<span>@Counts.Sum(c => c.Value)</span>)

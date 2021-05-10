@@ -32,25 +32,26 @@ namespace booka.counter.Models
                     break;
                 case ChartSpan.Week:
                     From = DateTime.Today.AddDays(-7);
-                    To = DateTime.Today.AddDays(1);
-                    Step = TimeSpan.FromHours(4);
-                    XAxisFormat = "ddd";
+                    To = DateTime.Today.AddDays(1).AddMinutes(-1);
+                    Step = TimeSpan.FromHours(8);
+                    XAxisFormat = "dd";
                     break;
                 case ChartSpan.Month:
                     From = DateTime.Today.AddDays(-30);
-                    To = DateTime.Today.AddDays(1);
+                    To = DateTime.Today.AddDays(1).AddMinutes(-1);
                     Step = TimeSpan.FromDays(1);
-                    XAxisFormat = "dd.MM";
+                    XAxisFormat = "dd";
                     break;
                 case ChartSpan.All:
                     From = from.Value;
-                    To = DateTime.Today.AddDays(1);
+                    To = DateTime.Today.AddDays(1).AddMinutes(-1);
                     Step = TimeSpan.FromDays(1);
-                    XAxisFormat = "dd.MM";
+                    XAxisFormat = "dd";
                     break;
             }
         }
     }
+
 
     public enum ChartSpan
     {
@@ -59,5 +60,12 @@ namespace booka.counter.Models
         Week,
         Month,
         All
+    }
+
+    public enum ChartMode
+    {
+        SevenDayAverage,
+        Total,
+        Added
     }
 }
