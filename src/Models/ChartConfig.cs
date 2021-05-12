@@ -59,13 +59,13 @@ namespace booka.counter.Models
         TwoDays,
         Week,
         Month,
-        All
+        All,
     }
 
     public enum ChartMode
     {
-        SevenDayAverage,
         Total,
-        Added
+        Added,
+        SevenDayAverage,
     }
 }

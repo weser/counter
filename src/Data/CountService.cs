@@ -13,7 +13,7 @@ namespace booka.counter.Data
 {
     public class CountService
     {
-        private readonly ApplicationDbContext context;
+        private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly AuthenticationStateProvider asProvider;
         private readonly UserManager<ApplicationUser> userManager;
         private static readonly List<Count> cachedCounts = new();
@@ -21,9 +21,9 @@ namespace booka.counter.Data
 
         private static readonly Dictionary<Guid, TagPageModel> sharedPageModels = new();
 
-        public CountService(ApplicationDbContext context, AuthenticationStateProvider asProvider, UserManager<ApplicationUser> userManager)
+        public CountService(IDbContextFactory<ApplicationDbContext> contextFactory, AuthenticationStateProvider asProvider, UserManager<ApplicationUser> userManager)
         {
-            this.context = context;
+            this.contextFactory = contextFactory;
             this.asProvider = asProvider;
             this.userManager = userManager;
         }
@@ -46,6 +46,7 @@ namespace booka.counter.Data
         }
         public async Task<List<ApplicationUser>> GetAllUsers()
         {
+            using (var context = contextFactory.CreateDbContext())
             return await context.Users.OrderBy(u => u.UserName).ToListAsync();
         }
 
@@ -78,9 +79,11 @@ namespace booka.counter.Data
             };
 
             cachedCounts.Add(count);
-            context.Counts.Add(count);
-            await context.SaveChangesAsync();
-
+            using (var context = contextFactory.CreateDbContext())
+            {
+                context.Counts.Add(count);
+                await context.SaveChangesAsync();
+            }
             sharedPageModels[tag.Id].Counts.Add(count);
         }
 
@@ -91,9 +94,11 @@ namespace booka.counter.Data
                 Description = description,
                 Title = titel
             };
-            context.Tags.Add(tag);
-            await context.SaveChangesAsync();
-
+            using (var context = contextFactory.CreateDbContext())
+            {
+                context.Tags.Add(tag);
+                await context.SaveChangesAsync();
+            }
             cachedTags.Add(tag);
 
             return tag;
@@ -101,8 +106,11 @@ namespace booka.counter.Data
 
         private async Task EnsureCache()
         {
-            if (!cachedCounts.Any()) cachedCounts.AddRange(await context.Counts.ToListAsync());
-            if (!cachedTags.Any()) cachedTags.AddRange(await context.Tags.ToListAsync());
+            using (var context = contextFactory.CreateDbContext())
+            {
+                if (!cachedCounts.Any()) cachedCounts.AddRange(await context.Counts.ToListAsync());
+                if (!cachedTags.Any()) cachedTags.AddRange(await context.Tags.ToListAsync());
+            }
         }
     }
 

@@ -60,7 +60,7 @@ else
 @code {
     public List<List<object>> ChartSeriesValues;
     public List<string> ChartSeriesLabels;
-    public string[] xAxisItems = new string[] { "Q1", "Q2", "Q3", "Q4" };
+    public string[] xAxisItems;
 
 
     [Inject]
@@ -70,7 +70,7 @@ else
     public string TagId { get; set; }
 
     public ChartSpan SelectedChartSpan { get; set; } = ChartSpan.All;
-    public ChartMode SelectedChartMode { get; set; } = ChartMode.SevenDayAverage;
+    public ChartMode SelectedChartMode { get; set; }
 
     private List<ApplicationUser> Users { get; set; }
     private ApplicationUser User { get; set; }
@@ -82,13 +82,13 @@ else
         ChartSpan.Week,
         ChartSpan.Month,
         ChartSpan.All,
-                    };
+        };
     private ChartMode[] ChartModeValues = new ChartMode[]
     {
-        ChartMode.Total,
         ChartMode.SevenDayAverage,
+        ChartMode.Total,
         ChartMode.Added
-                };
+        };
 
     private TagPageModel TagPageModel { get; set; }
 
@@ -130,7 +130,9 @@ else
 
     private async void CalcAllCharts()
     {
-        var config = new ChartConfig(SelectedChartSpan, TagPageModel.Counts.Min(c => c.TimeStamp.Date));
+        var config = TagPageModel.Counts.Any()
+            ? new ChartConfig(SelectedChartSpan, TagPageModel.Counts.Min(c => c.TimeStamp.Date))
+            : new ChartConfig(SelectedChartSpan, DateTime.Today.AddDays(-1));
         var xValues = new List<string>();
         for (var t = config.From; t <= config.To; t += config.Step)
             xValues.Add(t.ToString(config.XAxisFormat));
