@@ -16,10 +16,20 @@ else
     <div class="container">
         <div class="row">
             <div class="col-6">
-                <TelerikComboBox Data="@ChartSpanValues" @bind-Value="SelectedChartSpan" OnChange="@((v) => Initialize())" />
+                <select @onchange="SelectSpan">
+                    @foreach (var s in ChartSpanValues)
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
             </div>
             <div class="col-6">
-                <TelerikComboBox Data="@ChartModeValues" @bind-Value="SelectedChartMode" OnChange="@((v) => Initialize())" />
+                <select @onchange="SelectMode">
+                    @foreach (var m in ChartModeValues)
+                    {
+                        <option value="@m">@m</option>
+                    }
+                </select>
             </div>
         </div>
 
@@ -36,7 +46,7 @@ else
                     <ChartCategoryAxes>
                         <ChartCategoryAxis Categories="@xAxisItems" />
                     </ChartCategoryAxes>
-                    <ChartLegend Position="ChartLegendPosition.Right">
+                    <ChartLegend Position="ChartLegendPosition.Bottom">
                     </ChartLegend>
                 </TelerikChart>
             </div>
@@ -70,25 +80,25 @@ else
     public string TagId { get; set; }
 
     public ChartSpan SelectedChartSpan { get; set; } = ChartSpan.All;
-    public ChartMode SelectedChartMode { get; set; }
+    public ChartMode SelectedChartMode { get; set; } = ChartMode.SevenDayAverage;
 
     private List<ApplicationUser> Users { get; set; }
     private ApplicationUser User { get; set; }
 
     private ChartSpan[] ChartSpanValues = new ChartSpan[]
     {
+        ChartSpan.All,
         ChartSpan.OneDay,
         ChartSpan.TwoDays,
         ChartSpan.Week,
         ChartSpan.Month,
-        ChartSpan.All,
-        };
+                };
     private ChartMode[] ChartModeValues = new ChartMode[]
     {
         ChartMode.SevenDayAverage,
         ChartMode.Total,
         ChartMode.Added
-        };
+                };
 
     private TagPageModel TagPageModel { get; set; }
 
@@ -196,4 +206,15 @@ else
     }
 
 
+    void SelectSpan(ChangeEventArgs e)
+    {
+        SelectedChartSpan = Enum.Parse<ChartSpan>(e.Value.ToString());
+        CalcAllCharts();
+    }
+
+    void SelectMode(ChangeEventArgs e)
+    {
+        SelectedChartMode = Enum.Parse<ChartMode>(e.Value.ToString());
+        CalcAllCharts();
+    }
 }
